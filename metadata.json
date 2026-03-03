@@ -1,0 +1,7 @@
+{
+  "name": "PrisSjekk",
+  "description": "Din smarte handleassistent. Skann kvitteringen og se hvor mye du sparer!",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
