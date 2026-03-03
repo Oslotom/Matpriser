@@ -98,6 +98,13 @@ export default function App() {
     return key ? storeLogos[key] : null;
   };
 
+  const normalizeStoreName = (name: string | null) => {
+    if (!name) return 'Ukjent butikk';
+    const chains = ['Meny', 'Kiwi', 'Bunnpris', 'Rema 1000', 'Coop Extra'];
+    const found = chains.find(c => name.toLowerCase().includes(c.toLowerCase()));
+    return found || name;
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
@@ -332,7 +339,7 @@ export default function App() {
                     <ShoppingBag size={24} />
                   </div>
                   <div>
-                    <h4 className="font-display font-bold text-slate-800">{result.store.store_name || 'Ukjent butikk'}</h4>
+                    <h4 className="font-display font-bold text-slate-800">{normalizeStoreName(result.store.store_name)}</h4>
                     <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">{result.store.purchase_date}</p>
                   </div>
                 </div>
@@ -347,7 +354,9 @@ export default function App() {
                 <h5 className="font-display font-bold text-slate-800 px-2">Totalpris per butikk</h5>
                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
                   {(() => {
-                    const chains = ['Meny', 'Kiwi', 'Bunnpris', 'Rema 1000', 'Coop Extra'];
+                    const normalizedReceiptStore = normalizeStoreName(result.store.store_name);
+                    const chains = ['Meny', 'Kiwi', 'Bunnpris', 'Rema 1000', 'Coop Extra'].filter(c => c !== normalizedReceiptStore);
+                    
                     const totals = chains.map(chain => {
                       const total = result.items.reduce((sum, item) => sum + (item.comparisons?.[chain] || 0), 0);
                       const missingCount = result.items.filter(item => item.comparisons?.[chain] === null).length;
@@ -355,7 +364,7 @@ export default function App() {
                     });
                     
                     const receiptTotal = result.items.reduce((sum, item) => sum + item.price_total, 0);
-                    const allTotals = [...totals, { chain: result.store.store_name || 'Din butikk', total: receiptTotal, missingCount: 0, isReceipt: true }];
+                    const allTotals = [...totals, { chain: normalizedReceiptStore, total: receiptTotal, missingCount: 0, isReceipt: true }];
                     
                     const maxTotal = Math.max(...allTotals.map(t => t.total));
                     const minTotal = Math.min(...allTotals.filter(t => t.total > 0).map(t => t.total));
@@ -406,24 +415,26 @@ export default function App() {
                 
                 <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                   <div className="overflow-x-auto scrollbar-none">
-                    <table className="w-full text-left border-collapse min-w-[800px]">
+                    <table className="w-full text-left border-collapse min-w-[700px] table-fixed">
                       <thead>
                         <tr className="bg-slate-50/50 border-b border-slate-100">
-                          <th className="py-4 px-4 font-display font-bold text-[10px] text-slate-400 uppercase tracking-wider">Vare</th>
-                          <th className="py-4 px-2 font-display font-bold text-[10px] text-slate-400 uppercase tracking-wider text-center min-w-[100px]">
+                          <th className="py-3 px-4 font-display font-medium text-[10px] text-slate-400 uppercase tracking-wider w-[140px]">Vare</th>
+                          <th className="py-3 px-1 font-display font-medium text-[10px] text-slate-400 uppercase tracking-wider text-center w-[65px]">
                             <div className="flex flex-col items-center gap-1">
                               {getStoreLogo(result.store.store_name) && (
-                                <img src={getStoreLogo(result.store.store_name)!} alt="" className="w-4 h-4 rounded-sm" referrerPolicy="no-referrer" />
+                                <img src={getStoreLogo(result.store.store_name)!} alt="" className="w-3.5 h-3.5 rounded-sm" referrerPolicy="no-referrer" />
                               )}
-                              <span className="truncate max-w-[80px]">{result.store.store_name || 'Din pris'}</span>
+                              <span className="truncate w-full px-1">{normalizeStoreName(result.store.store_name)}</span>
                             </div>
                           </th>
-                          <th className="py-4 px-2 font-display font-bold text-[10px] text-slate-400 uppercase tracking-wider text-center">Diff</th>
-                          {['Meny', 'Kiwi', 'Bunnpris', 'Rema 1000', 'Coop Extra'].map(store => (
-                            <th key={store} className="py-4 px-2 font-display font-bold text-[10px] text-slate-400 uppercase tracking-wider text-center">
+                          <th className="py-3 px-1 font-display font-medium text-[10px] text-slate-400 uppercase tracking-wider text-center w-[55px]">Diff</th>
+                          {['Meny', 'Kiwi', 'Bunnpris', 'Rema 1000', 'Coop Extra']
+                            .filter(c => c !== normalizeStoreName(result.store.store_name))
+                            .map(store => (
+                            <th key={store} className="py-3 px-1 font-display font-medium text-[10px] text-slate-400 uppercase tracking-wider text-center w-[60px]">
                               <div className="flex flex-col items-center gap-1">
                                 {getStoreLogo(store) && (
-                                  <img src={getStoreLogo(store)!} alt="" className="w-4 h-4 rounded-sm" referrerPolicy="no-referrer" />
+                                  <img src={getStoreLogo(store)!} alt="" className="w-3.5 h-3.5 rounded-sm" referrerPolicy="no-referrer" />
                                 )}
                                 <span>{store.replace(' 1000', '').replace(' Extra', '')}</span>
                               </div>
@@ -433,13 +444,10 @@ export default function App() {
                       </thead>
                       <tbody className="divide-y divide-slate-50">
                         {result.items.map((item, idx) => {
-                          const prices = [
-                            { name: 'Meny', val: item.comparisons?.['Meny'] },
-                            { name: 'Kiwi', val: item.comparisons?.['Kiwi'] },
-                            { name: 'Bunnpris', val: item.comparisons?.['Bunnpris'] },
-                            { name: 'Rema 1000', val: item.comparisons?.['Rema 1000'] },
-                            { name: 'Coop Extra', val: item.comparisons?.['Coop Extra'] },
-                          ];
+                          const normalizedReceiptStore = normalizeStoreName(result.store.store_name);
+                          const comparisonChains = ['Meny', 'Kiwi', 'Bunnpris', 'Rema 1000', 'Coop Extra'].filter(c => c !== normalizedReceiptStore);
+                          
+                          const prices = comparisonChains.map(chain => ({ name: chain, val: item.comparisons?.[chain] }));
                           
                           const validPrices = prices.filter(p => p.val !== null && p.val !== undefined) as { name: string, val: number }[];
                           const minPrice = validPrices.length > 0 ? Math.min(...validPrices.map(p => p.val)) : null;
@@ -459,20 +467,18 @@ export default function App() {
                                   isExpanded && "bg-emerald-50/50"
                                 )}
                               >
-                                <td className="py-3 px-4">
-                                  <div className="max-w-[140px]">
-                                    <p className="font-display font-bold text-slate-800 text-[13px] truncate" title={item.standardized_name}>
-                                      {item.standardized_name}
-                                    </p>
-                                  </div>
+                                <td className="py-2.5 px-4">
+                                  <p className="font-display text-slate-800 text-[11px] truncate" title={item.standardized_name}>
+                                    {item.standardized_name}
+                                  </p>
                                 </td>
-                                <td className="py-3 px-2 text-center">
-                                  <p className="font-display font-bold text-slate-800 text-[13px]">{item.price_total.toFixed(2)}</p>
+                                <td className="py-2.5 px-1 text-center">
+                                  <p className="font-display text-slate-800 text-[11px]">{item.price_total.toFixed(2)}</p>
                                 </td>
-                                <td className="py-3 px-2 text-center">
+                                <td className="py-2.5 px-1 text-center">
                                   {diff !== null ? (
                                     <span className={cn(
-                                      "font-display font-bold text-[11px]",
+                                      "font-display text-[11px]",
                                       diff > 0 ? "text-emerald-500" : diff < 0 ? "text-red-500" : "text-slate-400"
                                     )}>
                                       {diff > 0 ? '+' : ''}{diff.toFixed(2)}
@@ -481,20 +487,20 @@ export default function App() {
                                     <span className="text-slate-300 text-[11px]">—</span>
                                   )}
                                 </td>
-                                {['Meny', 'Kiwi', 'Bunnpris', 'Rema 1000', 'Coop Extra'].map(store => {
+                                {comparisonChains.map(store => {
                                   const price = item.comparisons?.[store];
                                   const isCheapest = price !== null && price === minPrice;
                                   return (
-                                    <td key={store} className="py-3 px-2 text-center">
+                                    <td key={store} className="py-2.5 px-1 text-center">
                                       {price !== null && price !== undefined ? (
                                         <span className={cn(
-                                          "font-display text-[13px]",
+                                          "font-display text-[11px]",
                                           isCheapest ? "text-emerald-600 font-bold" : "text-slate-500"
                                         )}>
                                           {price.toFixed(2)}
                                         </span>
                                       ) : (
-                                        <span className="text-slate-300 text-[13px]">—</span>
+                                        <span className="text-slate-300 text-[11px]">—</span>
                                       )}
                                     </td>
                                   );
@@ -526,7 +532,9 @@ export default function App() {
                                         <div>
                                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Pris hentet per butikk</p>
                                           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                                            {['Meny', 'Kiwi', 'Bunnpris', 'Rema 1000', 'Coop Extra'].map(store => (
+                                            {['Meny', 'Kiwi', 'Bunnpris', 'Rema 1000', 'Coop Extra']
+                                              .filter(c => c !== normalizeStoreName(result.store.store_name))
+                                              .map(store => (
                                               <div key={store} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
                                                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight mb-1">{store}</p>
                                                 <p className="font-mono text-[10px] text-slate-600">{result.comparison_date}</p>
