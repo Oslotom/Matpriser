@@ -1,6 +1,8 @@
 import React from 'react';
 import { Camera, Upload, X, ArrowRight, Info, ShoppingBag } from 'lucide-react';
 import { motion } from 'motion/react';
+import { getStoreLogo } from '../utils/receiptUtils';
+import { GROCERY_CHAINS } from '../constants';
 
 interface UploadSectionProps {
   preview: string | null;
@@ -109,23 +111,43 @@ export const ReceiptUploadView: React.FC<UploadSectionProps> = ({
         />
       </div>
 
+      {/* Store Logos Section */}
+      {!preview && (
+        <div className="mt-12">
+          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-6 text-center">Vi sammenligner priser fra</h3>
+          <div className="grid grid-cols-3 gap-4">
+            {GROCERY_CHAINS.map((chain) => (
+              <div key={chain} className="bg-white border border-slate-100 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 shadow-sm">
+                <img 
+                  src={getStoreLogo(chain) || ''} 
+                  alt={chain} 
+                  className="w-8 h-8 object-contain grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all"
+                  referrerPolicy="no-referrer"
+                />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{chain}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* How it works section */}
       {!preview && (
         <div className="mt-12 pt-12 border-t border-slate-100">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-8 text-center">Slik fungerer det</h3>
-          <div className="space-y-8">
+          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-8 text-center">Slik fungerer det</h3>
+          <div className="grid grid-cols-3 gap-4">
             {[
-              { icon: Camera, title: 'Skann', desc: 'Ta et bilde av din siste matvarekvittering' },
-              { icon: ShoppingBag, title: 'Analyser', desc: 'Vår AI leser automatisk alle varene dine' },
-              { icon: ArrowRight, title: 'Sammenlign', desc: 'Se nøyaktig hva du sparer hos andre kjeder' }
+              { icon: Camera, title: 'Skann', desc: 'Ta bilde' },
+              { icon: ShoppingBag, title: 'Analyser', desc: 'AI leser' },
+              { icon: ArrowRight, title: 'Spar', desc: 'Se priser' }
             ].map((step, i) => (
-              <div key={i} className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
-                  <step.icon className="text-emerald-500 w-5 h-5" />
+              <div key={i} className="flex flex-col items-center text-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center shrink-0">
+                  <step.icon className="text-emerald-500 w-6 h-6" />
                 </div>
-                <div>
-                  <h4 className="font-bold text-slate-800 text-sm">{step.title}</h4>
-                  <p className="text-xs text-slate-500 leading-relaxed">{step.desc}</p>
+                <div className="space-y-1">
+                  <h4 className="font-bold text-slate-800 text-[11px] uppercase tracking-wider">{step.title}</h4>
+                  <p className="text-[10px] text-slate-400 leading-tight">{step.desc}</p>
                 </div>
               </div>
             ))}
