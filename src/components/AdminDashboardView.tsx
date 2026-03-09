@@ -23,13 +23,23 @@ interface DashboardProps {
   onBack: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ onBack }) => {
+/**
+ * AdminDashboardView - Provides analytics and search capabilities for administrators
+ * Displays usage statistics, growth charts, and product price history.
+ */
+export const AdminDashboardView: React.FC<DashboardProps> = ({ onBack }) => {
+  // --- State Management ---
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<ProductPrice[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
+  // --- Side Effects ---
+  
+  /**
+   * Fetch aggregate statistics on mount
+   */
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -46,6 +56,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBack }) => {
     fetchStats();
   }, []);
 
+  /**
+   * Handle debounced product search
+   */
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
       if (searchQuery.length >= 2) {
@@ -67,6 +80,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBack }) => {
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
 
+  // --- Sub-components ---
+  
+  /**
+   * StatCard - A reusable card for displaying a single metric
+   */
   const StatCard = ({ icon: Icon, label, value, color }: { icon: any, label: string, value: number | string, color: string }) => (
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
@@ -83,8 +101,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBack }) => {
     </motion.div>
   );
 
+  // --- Render ---
   return (
     <div className="space-y-6">
+      {/* View Header */}
       <div className="flex items-center gap-4">
         <button 
           onClick={onBack}
@@ -96,12 +116,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBack }) => {
       </div>
 
       {loading ? (
+        /* Loading State */
         <div className="flex items-center justify-center py-20">
           <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : stats ? (
         <>
-          {/* Stats Grid - 2 columns */}
+          {/* Stats Grid: Key Metrics */}
           <div className="grid grid-cols-2 gap-3">
             <StatCard 
               icon={Users} 
@@ -129,7 +150,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBack }) => {
             />
           </div>
 
-          {/* Weekly Graph */}
+          {/* Weekly Growth Chart */}
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -174,7 +195,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBack }) => {
             </div>
           </motion.div>
 
-          {/* Product Search */}
+          {/* Product Price Search Section */}
           <div className="space-y-4">
             <h3 className="text-slate-800 font-display font-bold px-2">Søk i prishistorikk</h3>
             <div className="relative">
@@ -193,6 +214,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBack }) => {
               )}
             </div>
 
+            {/* Search Results Table */}
             <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
               {searchResults.length > 0 ? (
                 <div className="overflow-x-auto">
@@ -237,6 +259,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBack }) => {
           </div>
         </>
       ) : (
+        /* Error State */
         <div className="p-8 bg-red-50 text-red-600 rounded-3xl text-center font-medium">
           Klarte ikke å hente statistikk.
         </div>
