@@ -28,10 +28,18 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
     >
       <div className="mb-8">
         <h2 className="text-3xl font-display font-bold leading-tight mb-3">
-          Spar penger på <br />
-          <span className="text-emerald-500">matvarene dine</span>
+          Sammenlign pris <br />
+          <span className="text-emerald-500">på matvarer</span>
         </h2>
-        <p className="text-slate-500 text-lg">Skann kvitteringen din for å se hvor mye du har spart og finn bedre priser.</p>
+        <p className="text-slate-500 text-lg mb-4">Norges første folkestyrte matpris app</p>
+        
+        <div className="flex flex-wrap gap-2">
+          {['Helt gratis', 'Anonymt', 'Priser i sanntid'].map((usp) => (
+            <span key={usp} className="px-3 py-1 bg-white border border-slate-100 rounded-full text-[10px] font-bold text-slate-400 uppercase tracking-wider shadow-sm">
+              {usp}
+            </span>
+          ))}
+        </div>
       </div>
 
       <div className="flex-1 flex flex-col gap-8">

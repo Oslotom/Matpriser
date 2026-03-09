@@ -1,20 +1,21 @@
 import React, { useState, useRef } from 'react';
-import { ShoppingBag, RefreshCw, Info, LayoutDashboard } from 'lucide-react';
+import { ShoppingBag, RefreshCw, Info, LayoutDashboard, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { extractReceiptData } from './services/gemini';
 import { ExtractionResult } from './types';
 import { normalizeStoreName, compressImage } from './utils/helpers';
-import { SavingsHero } from './components/SavingsHero';
 import { StoreInfoCard } from './components/StoreInfoCard';
-import { PriceVisualization } from './components/PriceVisualization';
+import { StoreComparisonList } from './components/StoreComparisonList';
 import { ResultTable } from './components/ResultTable';
 import { UploadSection } from './components/UploadSection';
 import { AnalyzingSection } from './components/AnalyzingSection';
 import { Dashboard } from './components/Dashboard';
+import { PrivacyPolicy } from './components/PrivacyPolicy';
+import { Footer } from './components/Footer';
 import { useEffect } from 'react';
 
 export default function App() {
-  const [view, setView] = useState<'app' | 'dashboard'>('app');
+  const [view, setView] = useState<'app' | 'dashboard' | 'privacy'>('app');
   const [step, setStep] = useState<'upload' | 'analyzing' | 'results'>('upload');
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -100,33 +101,19 @@ export default function App() {
   };
 
   const totalSpent = result?.items.reduce((acc, item) => acc + item.price_total, 0) || 0;
-  const totalSavings = result?.items.reduce((acc, item) => acc + (item.discount || 0), 0) || 0;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center">
       {/* Header */}
-      <header className="w-full max-w-md px-6 py-8 flex items-center justify-between">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('app')}>
-          <div className="w-8 h-8 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200">
+      <header className="w-full max-w-md px-6 py-6 flex items-center justify-center">
+        <div 
+          className="flex items-center gap-2 cursor-pointer group" 
+          onClick={() => { setView('app'); reset(); }}
+        >
+          <div className="w-10 h-10 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200 group-hover:scale-110 transition-transform">
             <ShoppingBag className="text-white w-5 h-5" />
           </div>
-          <h1 className="text-2xl font-display font-extrabold text-slate-900">PrisSjekk</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          {view === 'app' && (
-            <button 
-              onClick={() => setView('dashboard')}
-              className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
-              title="Dashboard"
-            >
-              <LayoutDashboard size={20} />
-            </button>
-          )}
-          {step === 'results' && view === 'app' && (
-            <button onClick={reset} className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
-              <RefreshCw size={20} />
-            </button>
-          )}
+          <span className="text-xl font-display font-black text-slate-900 tracking-tight">PrisSjekk</span>
         </div>
       </header>
 
@@ -134,6 +121,8 @@ export default function App() {
         <AnimatePresence mode="wait">
           {view === 'dashboard' ? (
             <Dashboard key="dashboard" onBack={() => setView('app')} />
+          ) : view === 'privacy' ? (
+            <PrivacyPolicy key="privacy" onBack={() => setView('app')} />
           ) : (
             <>
               {step === 'upload' && (
@@ -162,25 +151,17 @@ export default function App() {
                   animate={{ opacity: 1, y: 0 }}
                   className="space-y-6"
                 >
-                  <SavingsHero totalSavings={totalSavings} />
+                  <h2 className="text-4xl font-display font-bold text-slate-900 mb-2">Planlegg</h2>
+                  
                   <StoreInfoCard result={result} totalSpent={totalSpent} />
                   
-                  <div className="space-y-3">
-                    <h5 className="font-display font-bold text-slate-800 px-2">Totalpris per butikk</h5>
-                    <PriceVisualization result={result} />
-                  </div>
+                  <StoreComparisonList result={result} />
 
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between px-2">
-                      <h5 className="font-display font-bold text-slate-800">Dine varer & prissammenligning</h5>
-                      <span className="text-xs font-bold text-emerald-500 bg-emerald-50 px-3 py-1 rounded-full">{result.items.length} varer</span>
-                    </div>
-                    <ResultTable 
-                      result={result} 
-                      expandedIdx={expandedIdx} 
-                      setExpandedIdx={setExpandedIdx} 
-                    />
-                  </div>
+                  <ResultTable 
+                    result={result} 
+                    expandedIdx={expandedIdx} 
+                    setExpandedIdx={setExpandedIdx} 
+                  />
 
                   <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex items-center gap-2">
                     <Info size={14} className="text-slate-400" />
@@ -202,7 +183,10 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      <div className="h-8" />
+      <Footer 
+        onPrivacyClick={() => setView('privacy')} 
+        onDashboardClick={() => setView('dashboard')}
+      />
     </div>
   );
 }
