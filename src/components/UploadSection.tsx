@@ -28,7 +28,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
     >
       <div className="mb-8">
         <h2 className="text-3xl font-display font-bold leading-tight mb-3">
-          Sammenlign pris <br />
+          Sammenlign priser <br />
           <span className="text-emerald-500">på matvarer</span>
         </h2>
         <p className="text-slate-500 text-lg mb-4">Norges første folkestyrte matpris app</p>
