@@ -54,6 +54,8 @@ async function startServer() {
     const uploads = db.prepare("SELECT COUNT(*) as count FROM receipts_log").get() as any;
     const products = db.prepare("SELECT COUNT(DISTINCT product_id) as count FROM prices").get() as any;
     const totalItems = db.prepare("SELECT COUNT(*) as count FROM prices").get() as any;
+    const chains = db.prepare("SELECT COUNT(DISTINCT store_chain) as count FROM prices").get() as any;
+    const stores = db.prepare("SELECT COUNT(DISTINCT store_chain) as count FROM receipts_log").get() as any; // Simplified for now
 
     // Weekly uploads for graph
     const weeklyData = db.prepare(`
@@ -77,6 +79,8 @@ async function startServer() {
       uploads: uploads.count,
       products: products.count,
       totalItems: totalItems.count,
+      chains: chains.count,
+      stores: stores.count,
       weekly: formattedWeekly
     });
   });

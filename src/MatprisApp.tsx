@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { ShoppingBag, RefreshCw, Info, LayoutDashboard } from 'lucide-react';
+import { ShoppingBag, RefreshCw, Info, LayoutDashboard, Store } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { extractReceiptData } from './services/receiptExtractionService';
 import { ExtractionResult } from './types';
@@ -12,10 +12,10 @@ import { AdminDashboardView } from './components/AdminDashboardView';
 import { useEffect } from 'react';
 
 /**
- * MatprisApp - Main application component
+ * ButikkpriserApp - Main application component
  * Handles routing between views, global state, and the receipt analysis flow.
  */
-export default function MatprisApp() {
+export default function ButikkpriserApp() {
   // --- State Management ---
   const [view, setView] = useState<'app' | 'dashboard' | 'privacy' | 'contact'>('app');
   const [step, setStep] = useState<'upload' | 'analyzing' | 'results'>('upload');
@@ -24,6 +24,7 @@ export default function MatprisApp() {
   const [result, setResult] = useState<ExtractionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+  const [analysisStatus, setAnalysisStatus] = useState<'uploading' | 'analyzing' | 'finished'>('uploading');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- Side Effects ---
@@ -43,7 +44,10 @@ export default function MatprisApp() {
       setFile(selectedFile);
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPreview(reader.result as string);
+        const previewUrl = reader.result as string;
+        setPreview(previewUrl);
+        // Automatically start analysis
+        triggerAnalysis(selectedFile, previewUrl);
       };
       reader.readAsDataURL(selectedFile);
       setError(null);
@@ -51,32 +55,27 @@ export default function MatprisApp() {
   };
 
   /**
-   * Triggers the AI analysis of the uploaded receipt
+   * Helper to trigger analysis with provided file and preview
    */
-  const startAnalysis = async () => {
-    if (!preview || !file) return;
+  const triggerAnalysis = async (fileToAnalyze: File, previewUrl: string) => {
     setStep('analyzing');
+    setAnalysisStatus('uploading');
     setError(null);
 
     try {
-      // 1. Compress image to reduce payload size and prevent timeouts
-      const compressedBase64 = await compressImage(file);
+      const compressedBase64 = await compressImage(fileToAnalyze);
       
-      // 2. Extract data using Gemini AI
+      setAnalysisStatus('analyzing');
       const data = await extractReceiptData(compressedBase64, 'image/jpeg');
       
       if (!data || !data.store || !data.items) {
         throw new Error("Klarte ikke å lese butikk eller varer fra kvitteringen. Prøv et tydeligere bilde.");
       }
       
-      // 3. Normalize store chain and save this receipt's data to the database
       const normalizedStoreChain = normalizeStoreName(data.store.store_chain || data.store.store_name || 'Ukjent');
       const dataToSave = {
         ...data,
-        store: {
-          ...data.store,
-          store_chain: normalizedStoreChain
-        }
+        store: { ...data.store, store_chain: normalizedStoreChain }
       };
 
       await fetch('/api/receipts', {
@@ -85,17 +84,19 @@ export default function MatprisApp() {
         body: JSON.stringify(dataToSave)
       });
 
-      // 4. Fetch real comparison data from the database for these products
       const productIds = data.items.map(item => item.product_id).join(',');
       const pricesRes = await fetch(`/api/prices?product_ids=${productIds}`);
       const realPrices = await pricesRes.json();
 
-      // 5. Augment the result with real data (replacing Gemini's guesses/nulls)
       const augmentedItems = data.items.map(item => ({
         ...item,
         comparisons: realPrices[item.product_id] || {}
       }));
 
+      setAnalysisStatus('finished');
+      // Small delay to show "finished" status
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
       setResult({ ...data, items: augmentedItems });
       setStep('results');
     } catch (err: any) {
@@ -126,20 +127,11 @@ export default function MatprisApp() {
       <header className="w-full max-w-md px-6 py-8 flex items-center justify-between">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => { setView('app'); reset(); }}>
           <div className="w-8 h-8 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200">
-            <ShoppingBag className="text-white w-5 h-5" />
+            <Store className="text-white w-5 h-5" />
           </div>
-          <h1 className="text-2xl font-display font-extrabold text-slate-900">Matpris</h1>
+          <h1 className="text-2xl font-display font-extrabold text-slate-900 tracking-tight">Butikkpriser.no</h1>
         </div>
         <div className="flex items-center gap-2">
-          {view === 'app' && (
-            <button 
-              onClick={() => setView('dashboard')}
-              className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
-              title="Dashboard"
-            >
-              <LayoutDashboard size={20} />
-            </button>
-          )}
           {step === 'results' && view === 'app' && (
             <button onClick={reset} className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
               <RefreshCw size={20} />
@@ -162,7 +154,7 @@ export default function MatprisApp() {
             >
               <h2 className="text-2xl font-display font-bold text-slate-900">Personvern</h2>
               <div className="prose prose-slate text-slate-600 space-y-4">
-                <p>Vi tar ditt personvern på alvor. Matpris lagrer kun data fra kvitteringer for å forbedre prissammenligningen.</p>
+                <p>Vi tar ditt personvern på alvor. Butikkpriser.no lagrer kun data fra kvitteringer for å forbedre prissammenligningen.</p>
                 <p>Ingen personlig informasjon knyttet til din identitet blir lagret eller delt med tredjeparter.</p>
               </div>
               <button 
@@ -202,7 +194,6 @@ export default function MatprisApp() {
                   setPreview={setPreview}
                   fileInputRef={fileInputRef}
                   handleFileChange={handleFileChange}
-                  startAnalysis={startAnalysis}
                   error={error}
                 />
               )}
@@ -212,6 +203,8 @@ export default function MatprisApp() {
                 <ReceiptAnalysisView 
                   key="analyzing"
                   onCancel={() => setStep('upload')} 
+                  preview={preview}
+                  status={analysisStatus}
                 />
               )}
 
@@ -268,9 +261,15 @@ export default function MatprisApp() {
             >
               Kontakt oss
             </button>
+            <button 
+              onClick={() => setView('dashboard')}
+              className="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-wider"
+            >
+              Dashboard
+            </button>
           </div>
           <p className="text-[10px] text-slate-300 font-medium uppercase tracking-[0.2em]">
-            © 2024 Matpris AS
+            © 2024 Butikkpriser.no
           </p>
         </div>
       </footer>

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Camera, Upload, X, ArrowRight, Info, ShoppingBag } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Camera, Upload, X, ArrowRight, Info, ShoppingBag, Database, List, Store, Layers } from 'lucide-react';
 import { motion } from 'motion/react';
 import { getStoreLogo } from '../utils/receiptUtils';
 import { GROCERY_CHAINS } from '../constants';
@@ -9,22 +9,35 @@ interface UploadSectionProps {
   setPreview: (p: string | null) => void;
   fileInputRef: React.RefObject<HTMLInputElement>;
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  startAnalysis: () => void;
   error: string | null;
+}
+
+interface Stats {
+  uploads: number;
+  totalItems: number;
+  stores: number;
+  chains: number;
 }
 
 /**
  * ReceiptUploadView - The landing page and upload interface
- * Features a hero banner with a phone mockup and the main upload triggers.
  */
 export const ReceiptUploadView: React.FC<UploadSectionProps> = ({ 
   preview, 
   setPreview, 
   fileInputRef, 
   handleFileChange, 
-  startAnalysis, 
   error 
 }) => {
+  const [stats, setStats] = useState<Stats | null>(null);
+
+  useEffect(() => {
+    fetch('/api/stats')
+      .then(res => res.json())
+      .then(data => setStats(data))
+      .catch(console.error);
+  }, []);
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -38,68 +51,33 @@ export const ReceiptUploadView: React.FC<UploadSectionProps> = ({
           Sammenlign pris <br />
           <span className="text-emerald-500">på matvarer</span>
         </h2>
-        <p className="text-slate-500 text-base">Matpris sammenligner priser hos de største kjedene</p>
+        <p className="text-slate-500 text-base">Butikkpriser.no sammenligner priser hos de største kjedene</p>
       </div>
 
       {/* Main Content Area: Upload Triggers */}
       <div className="flex flex-col gap-6">
-        {/* Preview State: Displayed after an image is selected */}
-        {preview ? (
-          <div className="flex flex-col items-center justify-center gap-6">
-            <div className="w-full h-32 relative">
-              <div className="absolute inset-0 rounded-3xl overflow-hidden border border-slate-200 bg-slate-100">
-                <div className="absolute inset-0 bg-gradient-to-r from-slate-900/60 to-transparent" />
-              </div>
-              
+        {/* Empty State: Upload Triggers */}
+        <div className="flex flex-col gap-3">
+          <div 
+            onClick={() => fileInputRef.current?.click()}
+            className="py-12 border-2 border-dashed border-emerald-200 rounded-[32px] flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/40 transition-all group bg-white shadow-xl shadow-emerald-100/50"
+          >
+            <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+              <Camera className="text-emerald-500 w-8 h-8" />
+            </div>
+            <div className="text-center px-8">
+              <p className="text-xl font-display font-bold text-slate-800">Ta bilde av kvitteringen</p>
+              <p className="text-sm text-slate-500 mt-1">Vi leser varene dine automatisk</p>
               <button 
-                onClick={() => setPreview(null)}
-                className="absolute top-3 right-3 w-8 h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white/40 transition-colors z-20"
+                onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                className="mt-4 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-full text-xs font-bold text-slate-600 transition-colors flex items-center justify-center gap-2 mx-auto"
               >
-                <X size={16} />
+                <Upload size={14} />
+                Eller velg fra bibliotek
               </button>
             </div>
-
-            {/* Receipt Thumbnail */}
-            <motion.div 
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="relative w-28 aspect-[3/4] rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-slate-200 -mt-16 z-10"
-            >
-              <img src={preview} alt="Preview" className="w-full h-full object-cover" />
-            </motion.div>
-
-            {/* Primary Action: Start Analysis */}
-            <button 
-              onClick={startAnalysis}
-              className="w-full py-5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-3xl font-display font-bold text-lg shadow-xl shadow-emerald-200 transition-all active:scale-95 flex items-center justify-center gap-2"
-            >
-              Sjekk priser <ArrowRight size={20} />
-            </button>
           </div>
-        ) : (
-          /* Empty State: Upload Triggers */
-          <div className="flex flex-col gap-3">
-            <div 
-              onClick={() => fileInputRef.current?.click()}
-              className="py-10 border-2 border-dashed border-slate-200 rounded-[32px] flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-emerald-200 hover:bg-emerald-50/30 transition-all group"
-            >
-              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Camera className="text-emerald-500 w-7 h-7" />
-              </div>
-              <div className="text-center px-8">
-                <p className="text-base font-display font-bold text-slate-800">Ta bilde av kvitteringen</p>
-              </div>
-            </div>
-            
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full py-4 bg-white text-slate-500 rounded-2xl font-display font-bold text-sm border border-slate-100 flex items-center justify-center gap-2 active:scale-95 transition-all"
-            >
-              <Upload size={16} className="text-slate-400" />
-              Eller velg fra bibliotek
-            </button>
-          </div>
-        )}
+        </div>
         
         {/* Hidden File Input */}
         <input 
@@ -111,9 +89,40 @@ export const ReceiptUploadView: React.FC<UploadSectionProps> = ({
         />
       </div>
 
+      {/* Statistics Section */}
+      {stats && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+          className="mt-10 mb-2"
+        >
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { label: 'Kvitteringer', value: stats.uploads, icon: Database },
+              { label: 'Varer', value: stats.totalItems, icon: List },
+              { label: 'Butikker', value: stats.stores, icon: Store },
+              { label: 'Kjeder', value: stats.chains, icon: Layers }
+            ].map((stat, i) => (
+              <motion.div 
+                key={i} 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 + (i * 0.1) }}
+                className="bg-white/50 backdrop-blur-sm border border-slate-100 rounded-2xl p-3 flex flex-col items-center justify-center text-center gap-1 hover:bg-white transition-colors"
+              >
+                <stat.icon size={12} className="text-emerald-500 mb-1" />
+                <span className="text-sm font-display font-bold text-slate-800 leading-none">{stat.value}</span>
+                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">{stat.label}</span>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
       {/* Store Logos Section */}
       {!preview && (
-        <div className="mt-12">
+        <div className="mt-8">
           <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-6 text-center">Vi sammenligner priser fra</h3>
           <div className="grid grid-cols-3 gap-4">
             {GROCERY_CHAINS.map((chain) => (

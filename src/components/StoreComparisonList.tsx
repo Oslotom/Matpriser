@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
 import { ExtractionResult } from '../types';
-import { getStoreLogo } from '../utils/helpers';
+import { getStoreLogo } from '../utils/receiptUtils';
 
 interface StoreComparisonListProps {
   result: ExtractionResult;
